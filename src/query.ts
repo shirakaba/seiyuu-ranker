@@ -264,7 +264,7 @@ export async function query({ variables, progressMonitor }: queryArgs): Promise<
     await deepDepaginatedMedia.reduce(
       (acc, medium, i, arr) => {
         return acc.then(() => {
-          const progress = (i + 1) / arr.length;
+          const progressNumerator = (i + 1);
           const { id, title, characters } = medium;
           const { total, perPage, currentPage, lastPage, hasNextPage } = characters.pageInfo;
     
@@ -273,7 +273,7 @@ export async function query({ variables, progressMonitor }: queryArgs): Promise<
           delete characters.pageInfo;
   
           if(!hasNextPage){
-            progressMonitor?.emitEvent("update", [progress, arr.length]);
+            progressMonitor?.emitEvent("update", [progressNumerator, arr.length]);
             return;
           }
     
@@ -290,7 +290,7 @@ export async function query({ variables, progressMonitor }: queryArgs): Promise<
   
             characters.edges = depaginatedCharacters.edges;
 
-            progressMonitor?.emitEvent("update", [progress, arr.length]);
+            progressMonitor?.emitEvent("update", [progressNumerator, arr.length]);
           });
         });
       },
@@ -398,7 +398,7 @@ export async function query({ variables, progressMonitor }: queryArgs): Promise<
   });
 }
 
-interface QueryResult {
+export interface QueryResult {
   id: string,
   
   mainRoles: number,

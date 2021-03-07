@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { onMount } from "svelte";
 	import { query } from "./query";
-	import type { MediaSeason } from "./query";
+	import type { MediaSeason, QueryResult } from "./query";
+	import { default as EventEmitter } from "wolfy87-eventemitter";
 
 	async function getRandomNumber() {
 		const res = await fetch(`tutorial/random-number`);
@@ -57,49 +59,111 @@
 
 	let submissionInFlight: boolean = false;
 	$: canSubmit = !submissionInFlight && yearValid;
+	let submissionPromise: Promise<QueryResult[]|null> = Promise.resolve(null);
+
+	let queryProgress: number|null = null;
 
 
 	function onSubmit(): void {
-		// alert(`answered question ${selected.id} (${selected.text}) with "${answer}"`);
+		if(submissionInFlight){
+			return;
+		}
+		submissionInFlight = true;
+
+		const progressMonitor = new EventEmitter();
+		const onUpdate = (numerator, denominator) => {
+			queryProgress = (numerator / denominator) * 100;
+		};
+		progressMonitor.on("update", onUpdate);
+
+		submissionPromise = query({
+			variables: {
+				seasonYear: parseInt(year),
+				...(restrictToSeason ? { season: selectedSeason.value } : {}),
+			},
+			progressMonitor,
+		})
+		.finally(() => {
+			submissionInFlight = false;
+		});
 	}
+
+	let progressBar: HTMLProgressElement;
+	onMount(() => {
+		progressBar.removeAttribute("value"); // To make it indeterminate.
+	});
 </script>
 
 <main>
 	<h1>Seiyuu Ranker</h1>
 
-	<form on:submit|preventDefault={onSubmit}>
-		<label>
-			Year
-			<input style="width: 4em;" bind:value={year}>
-		</label>
-		{#if !yearValid}
-			<p style="color: red;">Please enter a valid year.</p>
-		{/if}
+	<section>
+		<h2>Form</h2>
 
-		<p><em>Note that the release year is offset from the calendar by one month.</em></p>
-		<p><em>i.e. It includes the December of the preceding year rather than that of the given year.</em></p>
-
-		<label>
-			<input type=checkbox bind:checked={restrictToSeason}>
-			Restrict to season
-		</label>
-
-		{#if restrictToSeason}
-			<div style="padding: 8px;">
-				<select bind:value={selectedSeason}>
-					{#each seasons as season}
-						<option value={season}>
-							{season.text}
-						</option>
-					{/each}
-				</select>
-			</div>
-		{/if}
+		<form on:submit|preventDefault={onSubmit}>
+			<label>
+				Year
+				<input style="width: 4em;" bind:value={year}>
+			</label>
+			{#if !yearValid}
+				<p style="color: red;">Please enter a valid year.</p>
+			{/if}
 	
-		<button disabled={!canSubmit} type=submit>
-			Submit
-		</button>
-	</form>
+			<p><em>Note that the release year is offset from the calendar by one month.</em></p>
+			<p><em>i.e. It includes the December of the preceding year rather than that of the given year.</em></p>
+	
+			<label>
+				<input type=checkbox bind:checked={restrictToSeason}>
+				Restrict to season
+			</label>
+	
+			{#if restrictToSeason}
+				<div style="padding: 8px;">
+					<select bind:value={selectedSeason}>
+						{#each seasons as season}
+							<option value={season}>
+								{season.text}
+							</option>
+						{/each}
+					</select>
+				</div>
+			{/if}
+		
+			<button disabled={!canSubmit} type=submit>
+				Submit
+			</button>
+		</form>
+	</section>
+
+	
+	<section>
+		<h2>Results</h2>
+
+		{#await submissionPromise}
+			<!-- svelte-ignore empty-block -->
+		{:then result}
+			{#if result === null}
+				<p>Submit the form to populate the results.</p>
+			{/if}
+		{:catch error}
+			<p>Try submitting again.</p>
+		{/await}
+
+		<div>
+			<progress bind:this={progressBar} style="display: {(submissionInFlight) ? "inline-block" : "none"}" max="100" value={queryProgress}></progress>
+		</div>
+
+		{#await submissionPromise}
+			<p>Requesting data...</p>
+			<p><em>Note that we wait 125 ms between requests to prevent being rate-limited by the server. This may be over-the-top.</em></p>
+		{:then result}
+			{#if result !== null}
+				<code>{JSON.stringify(result)}</code>
+			{/if}
+		{:catch error}
+			<p style="color: red">{error.message}</p>
+		{/await}
+	</section>
 </main>
 
 <style>
