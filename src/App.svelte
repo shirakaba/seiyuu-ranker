@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 	import { query } from "./query";
+	import Results from "./Results.svelte";
 	import type { MediaSeason, QueryResult } from "./query";
 	import { default as EventEmitter } from "wolfy87-eventemitter";
 
@@ -158,7 +159,8 @@
 			<p><em>Note that we wait 125 ms between requests to prevent being rate-limited by the server. This may be over-the-top.</em></p>
 		{:then result}
 			{#if result !== null}
-				<code>{JSON.stringify(result)}</code>
+				<!-- <code>{JSON.stringify(result)}</code> -->
+				<Results data={result}/>
 			{/if}
 		{:catch error}
 			<p style="color: red">{error.message}</p>
