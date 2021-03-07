@@ -234,10 +234,12 @@ async function depaginateCharacters({
   };
 }
 
+export type MediaSeason = "WINTER"|"SPRING"|"SUMMER"|"FALL";
+
 interface queryArgs {
   variables: {
     seasonYear: number,
-    season?: "WINTER"|"SPRING"|"SUMMER"|"FALL",
+    season?: MediaSeason,
   },
   progressMonitor?: EventEmitter,
 }
