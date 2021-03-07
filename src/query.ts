@@ -1,3 +1,5 @@
+import type { default as EventEmitter } from "wolfy87-eventemitter";
+
 /**
  * @see https://anilist.gitbook.io/anilist-apiv2-docs/overview/resources-and-recommended-reading
  * @see https://anilist.github.io/ApiV2-GraphQL-Docs/
@@ -56,11 +58,8 @@ query ($season: MediaSeason!, $seasonYear: Int!, $page: Int, $perPage: Int) {
 
 // Define our query variables and values that will be used in the query request
 const mediaVariables = {
-  // id_in: [108725],
   seasonYear: 2021,
   season: "WINTER",
-  page: 1,
-  perPage: 50, // max
 };
 
 const charactersQuery: string = `
@@ -102,8 +101,8 @@ query ($page: Int, $id: Int) {
 `;
 
 const charactersVariables = {
-  "page": 1,
-  "id": 110277
+  page: 1,
+  id: 110277
 };
 
 // Define the config we'll need for our Api request
@@ -123,11 +122,17 @@ function makeOptions(query, variables){
   };
 }
 
+interface depaginateMediaArgs {
+  url: string,
+  query: string,
+  variables: any,
+}
+
 async function depaginateMedia({
   url,
   query,
   variables,
-}){
+}: depaginateMediaArgs){
   const explicitPage = variables.page ?? 1;
 
   const response = await fetch(
@@ -173,11 +178,17 @@ async function depaginateMedia({
   };
 }
 
+interface depaginateCharactersArgs {
+  url: string,
+  query: string,
+  variables: any, 
+}
+
 async function depaginateCharacters({
   url,
   query,
   variables,
-}){
+}: depaginateCharactersArgs){
   const explicitPage = variables.page ?? 1;
 
   const response = await fetch(
@@ -223,164 +234,178 @@ async function depaginateCharacters({
   };
 }
 
-export async function query(): Promise<QueryResult[]> {
-    // Make the HTTP Api request
-    return depaginateMedia({ url, query: mediaQuery, variables: mediaVariables })
-    .then(async (payload) => {
-      // console.log(payload);
-      const { media } = payload;
+interface queryArgs {
+  variables: {
+    seasonYear: number,
+    season?: "WINTER"|"SPRING"|"SUMMER"|"FALL",
+  },
+  progressMonitor?: EventEmitter,
+}
+
+export async function query({ variables, progressMonitor }: queryArgs): Promise<QueryResult[]> {
+  // Make the HTTP Api request
+  return depaginateMedia({ url, query: mediaQuery, variables })
+  .then(async (payload) => {
+    // console.log(payload);
+    const { media } = payload;
+
+    // Emit 0% progress update, now that progress has become definite.
+    progressMonitor?.emitEvent("update", [0, media.length]);
+  
+    const showsMap = new Map();
+    const voiceActorsMap = new Map();
+  
+    console.log("Shows this season:", media.length);
+  
+    const deepDepaginatedMedia = JSON.parse(JSON.stringify(media));
+  
+    await deepDepaginatedMedia.reduce(
+      (acc, medium, i, arr) => {
+        return acc.then(() => {
+          const progress = (i + 1) / arr.length;
+          const { id, title, characters } = medium;
+          const { total, perPage, currentPage, lastPage, hasNextPage } = characters.pageInfo;
     
-      const showsMap = new Map();
-      const voiceActorsMap = new Map();
+          console.log(`[deepDepaginatedMedia.reduce 1] media id: ${id}; characters page ${currentPage} / ${lastPage} (${perPage} edges per page / ${total} total); hasNextPage: ${hasNextPage}`);
     
-      console.log("Shows this season:", media.length);
+          delete characters.pageInfo;
+  
+          if(!hasNextPage){
+            progressMonitor?.emitEvent("update", [progress, arr.length]);
+            return;
+          }
     
-      const deepDepaginatedMedia = JSON.parse(JSON.stringify(media));
-    
-      await deepDepaginatedMedia.reduce(
-        (acc, medium) => {
-          return acc.then(() => {
-            const { id, title, characters } = medium;
-            const { total, perPage, currentPage, lastPage, hasNextPage } = characters.pageInfo;
-      
-            console.log(`[deepDepaginatedMedia.reduce 1] media id: ${id}; characters page ${currentPage} / ${lastPage} (${perPage} edges per page / ${total} total); hasNextPage: ${hasNextPage}`);
-      
-            delete characters.pageInfo;
-    
-            if(!hasNextPage){
-              return;
-            }
-      
-            return depaginateCharacters({
-              url,
-              query: charactersQuery,
-              variables: {
-                ...charactersVariables,
-                id,
-                page: 1,
-              },
-            })
-            .then((depaginatedCharacters) => {
-              console.log(`[deepDepaginatedMedia.reduce 2] media id: ${id}; characters page ${currentPage} / ${lastPage} (${perPage} edges per page / ${total} total); hasNextPage: ${hasNextPage}`);
-    
-              characters.edges = depaginatedCharacters.edges;
-            });
+          return depaginateCharacters({
+            url,
+            query: charactersQuery,
+            variables: {
+              id,
+              page: 1,
+            },
+          })
+          .then((depaginatedCharacters) => {
+            console.log(`[deepDepaginatedMedia.reduce 2] media id: ${id}; characters page ${currentPage} / ${lastPage} (${perPage} edges per page / ${total} total); hasNextPage: ${hasNextPage}`);
+  
+            characters.edges = depaginatedCharacters.edges;
+
+            progressMonitor?.emitEvent("update", [progress, arr.length]);
           });
-        },
-        Promise.resolve(),
-      );
-    
-      // console.log("deepDepaginatedMedia", deepDepaginatedMedia);
-    
-      const mediaWithCharactersData = deepDepaginatedMedia.filter((medium) => medium.characters.edges.length > 0);
-    
-      console.log(`Shows this season for which character info is available: ${mediaWithCharactersData.length} / ${deepDepaginatedMedia.length}`);
-    
-      mediaWithCharactersData.forEach((medium) => {
-        const { id, title, characters } = medium;
-        const { english, romaji, native } = title;
-        const preferredTitle = english ?? romaji ?? native ?? "[No title]";
-    
-        const show = {
-          preferredTitle,
-        };
-        showsMap.set(id, show);
-    
-        characters.edges.forEach((character) => {
-          const { role, voiceActors } = character;
-    
-          const distinctVoiceActorsForCharacter = new Set();
-    
-          voiceActors.forEach((voiceActor) => {
-            const { id, name: { full: fullName }, image: { large: image }, siteUrl } = voiceActor;
-            const alreadyVisited = distinctVoiceActorsForCharacter.has(id);
-            if(alreadyVisited){
-              // Guard against their duplicates problem
-              return;
+        });
+      },
+      Promise.resolve(),
+    );
+  
+    // console.log("deepDepaginatedMedia", deepDepaginatedMedia);
+  
+    const mediaWithCharactersData = deepDepaginatedMedia.filter((medium) => medium.characters.edges.length > 0);
+  
+    console.log(`Shows this season for which character info is available: ${mediaWithCharactersData.length} / ${deepDepaginatedMedia.length}`);
+  
+    mediaWithCharactersData.forEach((medium) => {
+      const { id, title, characters } = medium;
+      const { english, romaji, native } = title;
+      const preferredTitle = english ?? romaji ?? native ?? "[No title]";
+  
+      const show = {
+        preferredTitle,
+      };
+      showsMap.set(id, show);
+  
+      characters.edges.forEach((character) => {
+        const { role, voiceActors } = character;
+  
+        const distinctVoiceActorsForCharacter = new Set();
+  
+        voiceActors.forEach((voiceActor) => {
+          const { id, name: { full: fullName }, image: { large: image }, siteUrl } = voiceActor;
+          const alreadyVisited = distinctVoiceActorsForCharacter.has(id);
+          if(alreadyVisited){
+            // Guard against their duplicates problem
+            return;
+          }
+  
+          const existingEntry = voiceActorsMap.get(id);
+          if(existingEntry){
+            existingEntry.allRoles++;
+            if(role === "MAIN"){
+              existingEntry.mainRoles++;
+            } else if (role === "SUPPORTING"){
+              existingEntry.supportingRoles++;
+            } else if (role === "BACKGROUND"){
+              existingEntry.backgroundRoles++;
             }
-    
-            const existingEntry = voiceActorsMap.get(id);
-            if(existingEntry){
-              existingEntry.allRoles++;
-              if(role === "MAIN"){
-                existingEntry.mainRoles++;
-              } else if (role === "SUPPORTING"){
-                existingEntry.supportingRoles++;
-              } else if (role === "BACKGROUND"){
-                existingEntry.backgroundRoles++;
-              }
-              existingEntry.shows.push(id);
-              return;
-            }
-            voiceActorsMap.set(id, {
-              mainRoles: role === "MAIN" ? 1 : 0,
-              supportingRoles: role === "SUPPORTING" ? 1 : 0,
-              backgroundRoles: role === "BACKGROUND" ? 1 : 0,
-              allRoles: 1,
-    
-              fullName,
-              image,
-              siteUrl,
-              shows: [id],
-            });
+            existingEntry.shows.push(id);
+            return;
+          }
+          voiceActorsMap.set(id, {
+            mainRoles: role === "MAIN" ? 1 : 0,
+            supportingRoles: role === "SUPPORTING" ? 1 : 0,
+            backgroundRoles: role === "BACKGROUND" ? 1 : 0,
+            allRoles: 1,
+  
+            fullName,
+            image,
+            siteUrl,
+            shows: [id],
           });
         });
       });
-    
-      const sortedDesc = [...voiceActorsMap].sort((a, b) => {
-        const { allRoles: countA } = a[1];
-        const { allRoles: countB } = b[1];
-    
-        return countB - countA;
-      });
-    
-      const summary = sortedDesc.map(voiceActor => {
-        const id = voiceActor[0];
-        const {
-          mainRoles,
-          supportingRoles,
-          backgroundRoles,
-          allRoles,
-    
-          fullName,
-          image,
-          siteUrl,
-          shows,
-        } = voiceActor[1];
-        
-        return {
-          id,
-    
-          mainRoles,
-          supportingRoles,
-          backgroundRoles,
-          allRoles,
-    
-          fullName,
-          image,
-          siteUrl,
-          showIds: shows,
-        };
-      });
-    
-      console.table(summary);
-      return summary;
-    })
-    .catch((error) => {
-      console.error(error);
     });
+  
+    const sortedDesc = [...voiceActorsMap].sort((a, b) => {
+      const { allRoles: countA } = a[1];
+      const { allRoles: countB } = b[1];
+  
+      return countB - countA;
+    });
+  
+    const summary = sortedDesc.map(voiceActor => {
+      const id = voiceActor[0];
+      const {
+        mainRoles,
+        supportingRoles,
+        backgroundRoles,
+        allRoles,
+  
+        fullName,
+        image,
+        siteUrl,
+        shows,
+      } = voiceActor[1];
+      
+      return {
+        id,
+  
+        mainRoles,
+        supportingRoles,
+        backgroundRoles,
+        allRoles,
+  
+        fullName,
+        image,
+        siteUrl,
+        showIds: shows,
+      };
+    });
+  
+    console.table(summary);
+    return summary;
+  })
+  .catch((error) => {
+    console.error(error);
+  });
 }
 
 interface QueryResult {
-    id: string,
-    
-    mainRoles: number,
-    supportingRoles: number,
-    backgroundRoles: number,
-    allRoles: number,
+  id: string,
+  
+  mainRoles: number,
+  supportingRoles: number,
+  backgroundRoles: number,
+  allRoles: number,
 
-    fullName?: string,
-    image?: string,
-    siteUrl?: string,
-    showIds: number[],
+  fullName?: string,
+  image?: string,
+  siteUrl?: string,
+  showIds: number[],
 }
