@@ -126,12 +126,14 @@ interface depaginateMediaArgs {
   url: string,
   query: string,
   variables: any,
+  firstPageOnly?: boolean,
 }
 
 async function depaginateMedia({
   url,
   query,
   variables,
+  firstPageOnly = false,
 }: depaginateMediaArgs){
   const explicitPage = variables.page ?? 1;
 
@@ -157,7 +159,7 @@ async function depaginateMedia({
 
   console.log(`[depaginateMedia] media id: ${variables.id}; Page ${currentPage} / ${lastPage} (${perPage} media per page / ${total} total); hasNextPage: ${hasNextPage}`);
 
-  if(!hasNextPage){
+  if(!hasNextPage || firstPageOnly){
     return { media };
   }
 
@@ -182,12 +184,14 @@ interface depaginateCharactersArgs {
   url: string,
   query: string,
   variables: any, 
+  firstPageOnly?: boolean,
 }
 
 async function depaginateCharacters({
   url,
   query,
   variables,
+  firstPageOnly = false,
 }: depaginateCharactersArgs){
   const explicitPage = variables.page ?? 1;
 
@@ -213,7 +217,7 @@ async function depaginateCharacters({
 
   console.log(`[depaginateCharacters] media id: ${variables.id}; characters page ${currentPage} / ${lastPage} (${perPage} edges per page / ${total} total); hasNextPage: ${hasNextPage}`);
 
-  if(!hasNextPage){
+  if(!hasNextPage || firstPageOnly){
     return { edges };
   }
 
@@ -237,6 +241,7 @@ async function depaginateCharacters({
 export type MediaSeason = "WINTER"|"SPRING"|"SUMMER"|"FALL";
 
 interface queryArgs {
+  quick?: boolean,
   variables: {
     seasonYear: number,
     season?: MediaSeason,
@@ -244,9 +249,9 @@ interface queryArgs {
   progressMonitor?: EventEmitter,
 }
 
-export async function query({ variables, progressMonitor }: queryArgs): Promise<QueryResult[]> {
+export async function query({ quick, variables, progressMonitor }: queryArgs): Promise<QueryResult[]> {
   // Make the HTTP Api request
-  return depaginateMedia({ url, query: mediaQuery, variables })
+  return depaginateMedia({ url, query: mediaQuery, variables, firstPageOnly: quick })
   .then(async (payload) => {
     // console.log(payload);
     const { media } = payload;
@@ -284,6 +289,7 @@ export async function query({ variables, progressMonitor }: queryArgs): Promise<
               id,
               page: 1,
             },
+            firstPageOnly: quick,
           })
           .then((depaginatedCharacters) => {
             console.log(`[deepDepaginatedMedia.reduce 2] media id: ${id}; characters page ${currentPage} / ${lastPage} (${perPage} edges per page / ${total} total); hasNextPage: ${hasNextPage}`);

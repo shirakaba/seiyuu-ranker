@@ -64,7 +64,7 @@
 
 	let queryProgress: number|null = null;
 
-
+	const mock: boolean = true;
 	function onSubmit(): void {
 		if(submissionInFlight){
 			return;
@@ -77,21 +77,39 @@
 		};
 		progressMonitor.on("update", onUpdate);
 
-		submissionPromise = query({
-			variables: {
-				seasonYear: parseInt(year),
-				...(restrictToSeason ? { season: selectedSeason.value } : {}),
-			},
-			progressMonitor,
-		})
-		.finally(() => {
-			submissionInFlight = false;
-		});
+		submissionPromise = mock ? 
+			fetch("./2021_spring.json")
+			.then((response) => {
+				return response.json()
+				.then((json) => {
+					if(!response.ok){
+						return Promise.reject(json);
+					}
+					return json;
+				})
+			})
+			.finally(() => {
+				submissionInFlight = false;
+			}) :
+			query({
+				variables: {
+					seasonYear: parseInt(year),
+					...(restrictToSeason ? { season: selectedSeason.value } : {}),
+				},
+				progressMonitor,
+				quick: true,
+			})
+			.finally(() => {
+				submissionInFlight = false;
+			});
 	}
 
 	let progressBar: HTMLProgressElement;
 	onMount(() => {
 		progressBar.removeAttribute("value"); // To make it indeterminate.
+		if(mock){
+			onSubmit();
+		}
 	});
 </script>
 
@@ -172,7 +190,7 @@
 	main {
 		text-align: center;
 		padding: 1em;
-		max-width: 240px;
+		max-width: 1024px;
 		margin: 0 auto;
 	}
 
@@ -180,9 +198,9 @@
 		color: #293856;
 	}
 
-	@media (min-width: 640px) {
+	/* @media (min-width: 640px) {
 		main {
 			max-width: none;
 		}
-	}
+	} */
 </style>
