@@ -4,6 +4,7 @@
 	import Results from "./Results.svelte";
 	import type { MediaSeason, QueryResult } from "./query";
 	import { default as EventEmitter } from "wolfy87-eventemitter";
+	import UbiquityChart from "./UbiquityChart.svelte";
 
 	async function getRandomNumber() {
 		const res = await fetch(`tutorial/random-number`);
@@ -157,6 +158,8 @@
 	
 	<section>
 		<h2>Results</h2>
+
+		<UbiquityChart/>
 
 		{#await submissionPromise}
 			<!-- svelte-ignore empty-block -->
