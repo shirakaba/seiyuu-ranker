@@ -61,7 +61,20 @@
 
 	let submissionInFlight: boolean = false;
 	$: canSubmit = !submissionInFlight && yearValid;
-	let submissionPromise: Promise<QueryResult|null> = Promise.resolve(null);
+	interface Point {
+		x: number,
+		y: number,
+	}
+	interface SubmissionResolution extends QueryResult {
+		allRolesPoints: Point[],
+		mainRolesPoints: Point[],
+		supportingRolesPoints: Point[],
+		/**
+		 * Characters with background roles tend to have no associated voice actors listed, so makes bad graphs, though it does vary from season to season.
+		 */
+		// backgroundRolesPoints: Point[],
+	}
+	let submissionPromise: Promise<SubmissionResolution|null> = Promise.resolve(null);
 
 	let queryProgress: number|null = null;
 
@@ -78,27 +91,68 @@
 		};
 		progressMonitor.on("update", onUpdate);
 
-		submissionPromise = mock ? 
-			fetch("./2021_spring.json")
-			.then((response) => {
-				return response.json()
-				.then((json) => {
-					if(!response.ok){
-						return Promise.reject(json);
-					}
-					return json;
+		submissionPromise = (
+				mock ? 
+					fetch("./2021_spring.json")
+					.then((response) => {
+						return response.json()
+						.then((json) => {
+							if(!response.ok){
+								return Promise.reject(json);
+							}
+							return json;
+						})
+					}) :
+					query({
+						variables: {
+							seasonYear: parseInt(year),
+							...(restrictToSeason ? { season: selectedSeason.value } : {}),
+						},
+						progressMonitor,
+						quick: true,
+					})
+			)
+			.then((result: QueryResult) => {
+				// Shows this season for which character info is available
+
+				const allRolesPoints: Point[] = [{ x: 0, y: 0 }];
+				const mainRolesPoints: Point[] = [{ x: 0, y: 0 }];
+				const supportingRolesPoints: Point[] = [{ x: 0, y: 0 }];
+				// const backgroundRolesPoints: Point[] = [{ x: 0, y: 0 }];
+
+				let allRolesY: number = 0;
+				let mainRolesY: number = 0;
+				let supportingRolesY: number = 0;
+				let backgroundRolesY: number = 0;
+
+				result.seiyuus.forEach((seiyuu, i) => {
+					const {
+						allRoles,
+						mainRoles,
+						supportingRoles,
+						backgroundRoles,
+					} = seiyuu;
+
+					allRolesY += allRoles;
+					mainRolesY += mainRoles;
+					supportingRolesY += supportingRoles;
+					// backgroundRolesY += backgroundRoles;
+
+					allRolesPoints.push({ x: i + 1, y: allRolesY });
+					mainRolesPoints.push({ x: i + 1, y: mainRolesY });
+					supportingRolesPoints.push({ x: i + 1, y: supportingRolesY });
+					// backgroundRolesPoints.push({ x: i + 1, y: backgroundRolesY });
 				})
-			})
-			.finally(() => {
-				submissionInFlight = false;
-			}) :
-			query({
-				variables: {
-					seasonYear: parseInt(year),
-					...(restrictToSeason ? { season: selectedSeason.value } : {}),
-				},
-				progressMonitor,
-				quick: true,
+
+				// console.log(backgroundRolesPoints);
+
+				return {
+					...result,
+					allRolesPoints,
+					mainRolesPoints,
+					supportingRolesPoints,
+					// backgroundRolesPoints,
+				};
 			})
 			.finally(() => {
 				submissionInFlight = false;
@@ -179,10 +233,30 @@
 		{:then result}
 			{#if result !== null}
 				<!-- <code>{JSON.stringify(result)}</code> -->
-				<div style="position: relative; display: flex; justify-content: center; width: 100%; height: 300px;">
-					<div style="width: 300px; height: 100%;">
-						<UbiquityChart/>
-					</div>
+				<!-- <div style="position: relative; display: flex; justify-content: center; width: 100%; height: 300px;"></div> -->
+				<div style="display: inline-block; width: 300px; height: 300px;">
+					<UbiquityChart
+						title="All roles"
+						points={result.allRolesPoints}
+						y2={result.allRolesPoints[result.allRolesPoints.length - 1].y}
+						x2={result.seiyuus.length}
+					/>
+				</div>
+				<div style="display: inline-block; width: 300px; height: 300px;">
+					<UbiquityChart
+						title="Main roles"
+						points={result.mainRolesPoints}
+						y2={result.mainRolesPoints[result.mainRolesPoints.length - 1].y}
+						x2={result.seiyuus.length}
+					/>
+				</div>
+				<div style="display: inline-block; width: 300px; height: 300px;">
+					<UbiquityChart
+						title="Supporting roles"
+						points={result.supportingRolesPoints}
+						y2={result.supportingRolesPoints[result.supportingRolesPoints.length - 1].y}
+						x2={result.seiyuus.length}
+					/>
 				</div>
 				<Results data={result}/>
 			{/if}

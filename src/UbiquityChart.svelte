@@ -1,7 +1,7 @@
 <script>
   import * as Pancake from "@sveltejs/pancake";
 
-  const points = [
+  export let points = [
     { x: 0,  y: 0 },
     { x: 1,  y: 1 },
     { x: 2,  y: 4 },
@@ -14,12 +14,24 @@
     { x: 9,  y: 81 },
     { x: 10, y: 100 }
   ];
+  export let x1 = 0;
+  export let x2 = 10;
+  export let y1 = 0;
+  export let y2 = 100;
+  export let title = "";
 </script>
 
 <div class="chart">
   <!-- It's this Pancake.chart that needs text-align: center; to be reset to text-align: left; -->
-  <Pancake.Chart x1={0} x2={10} y1={0} y2={100}>
-    <Pancake.Box x2={10} y2={100}>
+  <Pancake.Chart {x1} {x2} {y1} {y2}>
+    <!-- Chart title. See https://github.com/Rich-Harris/pancake/blob/master/site/examples/data/0/App.svelte -->
+    <Pancake.Point x={x2 / 20} y={y2}>
+      <div class="text">
+        <h3 class="title">{title}</h3>
+      </div>
+    </Pancake.Point>
+
+    <Pancake.Box {x2} {y2}>
       <div class="axes"></div>
     </Pancake.Box>
 
@@ -40,6 +52,9 @@
 </div>
 
 <style>
+  .title {
+    white-space: pre;
+  }
   .chart {
     height: 100%;
     padding: 3em 2em 2em 3em;

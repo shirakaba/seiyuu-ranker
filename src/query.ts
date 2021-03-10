@@ -257,7 +257,7 @@ interface queryArgs {
   progressMonitor?: EventEmitter,
 }
 
-export async function query({ quick, variables, progressMonitor }: queryArgs): Promise<QueryResult[]> {
+export async function query({ quick, variables, progressMonitor }: queryArgs): Promise<QueryResult> {
   // Make the HTTP Api request
   return depaginateMedia({ url, query: mediaQuery, variables, firstPageOnly: quick })
   .then(async (payload) => {
@@ -335,6 +335,7 @@ export async function query({ quick, variables, progressMonitor }: queryArgs): P
   
         voiceActors.forEach((voiceActor) => {
           const { id, name: { full: fullName }, image: { large: image }, siteUrl } = voiceActor;
+
           const alreadyVisited = distinctVoiceActorsForCharacter.has(id);
           if(alreadyVisited){
             // Guard against their duplicates problem
@@ -393,6 +394,7 @@ export async function query({ quick, variables, progressMonitor }: queryArgs): P
         mainRoles,
         supportingRoles,
         backgroundRoles,
+        unclassifiedRoles,
         allRoles,
   
         fullName,
@@ -407,6 +409,7 @@ export async function query({ quick, variables, progressMonitor }: queryArgs): P
         mainRoles,
         supportingRoles,
         backgroundRoles,
+        unclassifiedRoles,
         allRoles,
   
         fullName,
@@ -416,7 +419,7 @@ export async function query({ quick, variables, progressMonitor }: queryArgs): P
       };
     });
   
-    console.table(seiyuus);
+    // console.table(seiyuus);
 
     return {
       seiyuus,
@@ -441,6 +444,7 @@ export interface SeiyuuSummary {
   mainRoles: number,
   supportingRoles: number,
   backgroundRoles: number,
+  unclassifiedRoles: number,
   allRoles: number,
 
   fullName?: string,
