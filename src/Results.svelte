@@ -1,9 +1,9 @@
 <script lang="ts">
     import type { QueryResult } from "./query";
 
-    export let data: QueryResult[] = [];
+    export let data: QueryResult = { seiyuus: [], shows: {} };
     const maxSeiyuusToShow = null;
-    $: slicedData = maxSeiyuusToShow === null ? data : data.slice(0, maxSeiyuusToShow);
+    $: slicedData = maxSeiyuusToShow === null ? data.seiyuus : data.seiyuus.slice(0, maxSeiyuusToShow);
 
     const maxImagesToShow = 5;
 </script>
@@ -39,7 +39,11 @@
                     <td class="roles">Background</td>
                     <td>{backgroundRoles}</td>
                 </tr>
+
                 <!-- TODO: links to shows -->
+                <!-- <tr>
+                    <td class="showsHeader">Shows</td>
+                </tr> -->
             </table>
         </div>
         
@@ -92,5 +96,8 @@
     }
     .roles {
         text-transform: lowercase;
+    }
+    .showsHeader {
+        text-transform: uppercase;
     }
 </style>

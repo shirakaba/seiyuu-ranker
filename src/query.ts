@@ -48,6 +48,10 @@ query ($season: MediaSeason!, $seasonYear: Int!, $page: Int, $perPage: Int) {
           }
           node { # Need to add this as a workaround in order to load in the relational data for each voiceActors element.
             id
+            name {
+              full
+              native
+            }
           }
         }
       }
@@ -93,6 +97,10 @@ query ($page: Int, $id: Int) {
         }
         node { # Need to add this as a workaround in order to load in the relational data for each voiceActors element.
           id
+          name {
+            full
+            native
+          }
         }
       }
     }
@@ -259,7 +267,7 @@ export async function query({ quick, variables, progressMonitor }: queryArgs): P
     // Emit 0% progress update, now that progress has become definite.
     progressMonitor?.emitEvent("update", [0, media.length]);
   
-    const showsMap = new Map();
+    const showsMap = new Map<string, ShowSummary>();
     const voiceActorsMap = new Map();
   
     console.log("Shows this season:", media.length);
@@ -312,15 +320,16 @@ export async function query({ quick, variables, progressMonitor }: queryArgs): P
     mediaWithCharactersData.forEach((medium) => {
       const { id, title, characters } = medium;
       const { english, romaji, native } = title;
-      const preferredTitle = english ?? romaji ?? native ?? "[No title]";
+      const preferredTitle = english ?? romaji ?? native ?? "[Title missing]";
   
-      const show = {
+      const show: ShowSummary = {
         preferredTitle,
+        seiyuus: {},
       };
       showsMap.set(id, show);
   
       characters.edges.forEach((character) => {
-        const { role, voiceActors } = character;
+        const { role, voiceActors, node: { id: characterId, name: characterName } } = character;
   
         const distinctVoiceActorsForCharacter = new Set();
   
@@ -331,6 +340,14 @@ export async function query({ quick, variables, progressMonitor }: queryArgs): P
             // Guard against their duplicates problem
             return;
           }
+
+          if(!show.seiyuus[id]){
+            show.seiyuus[id] = [];
+          }
+          show.seiyuus[id].push({
+            role: role ?? "UNCLASSIFIED",
+            name: characterName?.full ?? characterName?.native ?? "[Name missing]",
+          });
   
           const existingEntry = voiceActorsMap.get(id);
           if(existingEntry){
@@ -341,6 +358,8 @@ export async function query({ quick, variables, progressMonitor }: queryArgs): P
               existingEntry.supportingRoles++;
             } else if (role === "BACKGROUND"){
               existingEntry.backgroundRoles++;
+            } else {
+              existingEntry.unclassifiedRoles++;
             }
             existingEntry.shows.push(id);
             return;
@@ -349,6 +368,7 @@ export async function query({ quick, variables, progressMonitor }: queryArgs): P
             mainRoles: role === "MAIN" ? 1 : 0,
             supportingRoles: role === "SUPPORTING" ? 1 : 0,
             backgroundRoles: role === "BACKGROUND" ? 1 : 0,
+            unclassifiedRoles: (role !== "MAIN" && role !== "SUPPORTING" && role !== "BACKGROUND") ? 1 : 0,
             allRoles: 1,
   
             fullName,
@@ -367,7 +387,7 @@ export async function query({ quick, variables, progressMonitor }: queryArgs): P
       return countB - countA;
     });
   
-    const summary = sortedDesc.map(voiceActor => {
+    const seiyuus: SeiyuuSummary[] = sortedDesc.map(voiceActor => {
       const id = voiceActor[0];
       const {
         mainRoles,
@@ -396,15 +416,26 @@ export async function query({ quick, variables, progressMonitor }: queryArgs): P
       };
     });
   
-    console.table(summary);
-    return summary;
+    console.table(seiyuus);
+
+    return {
+      seiyuus,
+      shows: [...showsMap].reduce(
+        (acc, entry, i) => {
+          const [key, value] = entry;
+          acc[key] = value;
+          return acc;
+        },
+        {},
+      )
+    };
   })
   .catch((error) => {
     console.error(error);
   });
 }
 
-export interface QueryResult {
+export interface SeiyuuSummary {
   id: string,
   
   mainRoles: number,
@@ -416,4 +447,23 @@ export interface QueryResult {
   image?: string,
   siteUrl?: string,
   showIds: number[],
+}
+
+export interface ShowsSummary {
+  [id: string]: ShowSummary,
+}
+
+interface ShowSummary {
+  preferredTitle: string,
+  seiyuus: Record<string, Character[]>,
+}
+
+interface Character {
+  role: "MAIN"|"SUPPORTING"|"BACKGROUND"|"UNCLASSIFIED",
+  name: string,
+}
+
+export interface QueryResult {
+  seiyuus: SeiyuuSummary[],
+  shows: ShowsSummary,
 }

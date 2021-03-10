@@ -60,7 +60,7 @@
 
 	let submissionInFlight: boolean = false;
 	$: canSubmit = !submissionInFlight && yearValid;
-	let submissionPromise: Promise<QueryResult[]|null> = Promise.resolve(null);
+	let submissionPromise: Promise<QueryResult|null> = Promise.resolve(null);
 
 	let queryProgress: number|null = null;
 
