@@ -17,6 +17,7 @@
 </script>
 
 <div class="chart">
+  <!-- It's this Pancake.chart that needs text-align: center; to be reset to text-align: left; -->
   <Pancake.Chart x1={0} x2={10} y1={0} y2={100}>
     <Pancake.Box x2={10} y2={100}>
       <div class="axes"></div>
@@ -43,6 +44,9 @@
     height: 100%;
     padding: 3em 2em 2em 3em;
     box-sizing: border-box;
+  }
+  :global(.chart > div) {
+    text-align: left;
   }
 
   .axes {

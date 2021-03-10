@@ -159,8 +159,6 @@
 	<section>
 		<h2>Results</h2>
 
-		<UbiquityChart/>
-
 		{#await submissionPromise}
 			<!-- svelte-ignore empty-block -->
 		{:then result}
@@ -181,6 +179,11 @@
 		{:then result}
 			{#if result !== null}
 				<!-- <code>{JSON.stringify(result)}</code> -->
+				<div style="position: relative; display: flex; justify-content: center; width: 100%; height: 300px;">
+					<div style="width: 300px; height: 100%;">
+						<UbiquityChart/>
+					</div>
+				</div>
 				<Results data={result}/>
 			{/if}
 		{:catch error}
