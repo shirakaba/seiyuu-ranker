@@ -25,6 +25,7 @@
     "@tsconfig/svelte": "^1.0.0"
   },
   "dependencies": {
+    "@sveltejs/pancake": "0.0.17",
     "sirv-cli": "^1.0.0",
     "wolfy87-eventemitter": "^5.2.9"
   }
