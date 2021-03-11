@@ -95,7 +95,7 @@
 
 		submissionPromise = (
 				mock ? 
-					fetch("./2021_spring.json")
+					fetch("./2021_winter.json")
 					.then((response) => {
 						return response.json()
 						.then((json) => {
@@ -112,6 +112,10 @@
 						},
 						progressMonitor,
 						quick: false,
+						/**
+						 * Waiting 125 ms between requests still makes us hit the "too many requests" limit.
+						 */
+						rateLimitMs: restrictToSeason ? 125 : 250,
 					})
 			)
 			.then<QueryResultProcessed>((result: QueryResult) => {

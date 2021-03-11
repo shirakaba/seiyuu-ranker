@@ -135,6 +135,7 @@ interface depaginateMediaArgs {
   query: string,
   variables: any,
   firstPageOnly?: boolean,
+  rateLimitMs?: number,
 }
 
 async function depaginateMedia({
@@ -142,6 +143,7 @@ async function depaginateMedia({
   query,
   variables,
   firstPageOnly = false,
+  rateLimitMs = 125,
 }: depaginateMediaArgs){
   const explicitPage = variables.page ?? 1;
 
@@ -172,7 +174,7 @@ async function depaginateMedia({
   }
 
   // Wait 125 ms just to go easy on their servers.
-  await new Promise<void>((resolve) => setTimeout(() => resolve(), 125));
+  await new Promise<void>((resolve) => setTimeout(() => resolve(), rateLimitMs));
 
   const depaginated = await depaginateMedia({
     url,
@@ -193,6 +195,7 @@ interface depaginateCharactersArgs {
   query: string,
   variables: any, 
   firstPageOnly?: boolean,
+  rateLimitMs?: number,
 }
 
 async function depaginateCharacters({
@@ -200,6 +203,7 @@ async function depaginateCharacters({
   query,
   variables,
   firstPageOnly = false,
+  rateLimitMs = 125,
 }: depaginateCharactersArgs){
   const explicitPage = variables.page ?? 1;
 
@@ -230,7 +234,7 @@ async function depaginateCharacters({
   }
 
   // Wait 125 ms just to go easy on their servers.
-  await new Promise<void>((resolve) => setTimeout(() => resolve(), 125));
+  await new Promise<void>((resolve) => setTimeout(() => resolve(), rateLimitMs));
 
   const depaginated = await depaginateCharacters({
     url,
@@ -255,9 +259,10 @@ interface queryArgs {
     season?: MediaSeason,
   },
   progressMonitor?: EventEmitter,
+  rateLimitMs?: number,
 }
 
-export async function query({ quick, variables, progressMonitor }: queryArgs): Promise<QueryResult> {
+export async function query({ quick, variables, progressMonitor, rateLimitMs = 125 }: queryArgs): Promise<QueryResult> {
   // TODO: A full-year request may span 8 pages. We could give progress for that.
 
   // Make the HTTP Api request
@@ -300,6 +305,7 @@ export async function query({ quick, variables, progressMonitor }: queryArgs): P
               page: 1,
             },
             firstPageOnly: quick,
+            rateLimitMs,
           })
           .then((depaginatedCharacters) => {
             console.log(`[deepDepaginatedMedia.reduce 2] media id: ${id}; characters page ${currentPage} / ${lastPage} (${perPage} edges per page / ${total} total); hasNextPage: ${hasNextPage}`);
