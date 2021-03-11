@@ -381,14 +381,7 @@ export async function query({ quick, variables, progressMonitor }: queryArgs): P
       });
     });
   
-    const sortedDesc = [...voiceActorsMap].sort((a, b) => {
-      const { allRoles: countA } = a[1];
-      const { allRoles: countB } = b[1];
-  
-      return countB - countA;
-    });
-  
-    const seiyuus: SeiyuuSummary[] = sortedDesc.map(voiceActor => {
+    const seiyuuSummaries: SeiyuuSummary[] = [...voiceActorsMap].map(voiceActor => {
       const id = voiceActor[0];
       const {
         mainRoles,
@@ -422,7 +415,7 @@ export async function query({ quick, variables, progressMonitor }: queryArgs): P
     // console.table(seiyuus);
 
     return {
-      seiyuus,
+      seiyuuSummaries,
       shows: [...showsMap].reduce(
         (acc, entry, i) => {
           const [key, value] = entry;
@@ -468,6 +461,6 @@ interface Character {
 }
 
 export interface QueryResult {
-  seiyuus: SeiyuuSummary[],
+  seiyuuSummaries: SeiyuuSummary[],
   shows: ShowsSummary,
 }

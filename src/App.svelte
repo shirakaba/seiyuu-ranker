@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 	import { query } from "./query";
+	import type { SeiyuuSummary } from "./query";
 	import Results from "./Results.svelte";
 	import type { MediaSeason, QueryResult } from "./query";
 	import { default as EventEmitter } from "wolfy87-eventemitter";
 	import UbiquityChart from "./UbiquityChart.svelte";
+	import type { QueryResultProcessed, Point } from "./QueryResultProcessed";
 
 	async function getRandomNumber() {
 		const res = await fetch(`tutorial/random-number`);
@@ -61,22 +63,10 @@
 
 	let submissionInFlight: boolean = false;
 	$: canSubmit = !submissionInFlight && yearValid;
-	interface Point {
-		x: number,
-		y: number,
-	}
-	interface SubmissionResolution extends QueryResult {
-		allRolesPoints: Point[],
-		mainRolesPoints: Point[],
-		supportingRolesPoints: Point[],
-		/**
-		 * Characters with background roles tend to have no associated voice actors listed, so makes bad graphs, though it does vary from season to season.
-		 */
-		// backgroundRolesPoints: Point[],
-	}
-	let submissionPromise: Promise<SubmissionResolution|null> = Promise.resolve(null);
+	let submissionPromise: Promise<QueryResultProcessed|null> = Promise.resolve(null);
 
 	let queryProgress: number|null = null;
+	let queryResultRaw: QueryResult|null = null;
 
 	const mock: boolean = true;
 	function onSubmit(): void {
@@ -109,49 +99,96 @@
 							...(restrictToSeason ? { season: selectedSeason.value } : {}),
 						},
 						progressMonitor,
-						quick: true,
+						quick: false,
 					})
 			)
-			.then((result: QueryResult) => {
+			.then<QueryResultProcessed>((result: QueryResult) => {
 				// Shows this season for which character info is available
 
-				const allRolesPoints: Point[] = [{ x: 0, y: 0 }];
-				const mainRolesPoints: Point[] = [{ x: 0, y: 0 }];
-				const supportingRolesPoints: Point[] = [{ x: 0, y: 0 }];
-				// const backgroundRolesPoints: Point[] = [{ x: 0, y: 0 }];
+				queryResultRaw = result;
+				const { seiyuuSummaries } = result;
 
-				let allRolesY: number = 0;
-				let mainRolesY: number = 0;
-				let supportingRolesY: number = 0;
-				let backgroundRolesY: number = 0;
+				const seiyuusSortedByAllRoles = [...seiyuuSummaries].sort((a, b) => {
+					const { allRoles: countA } = a;
+					const { allRoles: countB } = b;
+				
+					return countB - countA;
+				});
+				const seiyuusSortedByMainRoles = [...seiyuuSummaries].sort((a, b) => {
+					const { mainRoles: countA } = a;
+					const { mainRoles: countB } = b;
+				
+					return countB - countA;
+				});
+				const seiyuusSortedBySupportingRoles = [...seiyuuSummaries].sort((a, b) => {
+					const { supportingRoles: countA } = a;
+					const { supportingRoles: countB } = b;
+				
+					return countB - countA;
+				});
 
-				result.seiyuus.forEach((seiyuu, i) => {
-					const {
-						allRoles,
-						mainRoles,
-						supportingRoles,
-						backgroundRoles,
-					} = seiyuu;
+				const allRolesPoints: Point[] = seiyuusSortedByAllRoles.reduce(
+					(acc: Point[], { allRoles }: SeiyuuSummary, i: number) => {
+						if(allRoles === 0){
+							// Stop adding actors to array, as roles are now accounted for.
+							return acc;
+						}
 
-					allRolesY += allRoles;
-					mainRolesY += mainRoles;
-					supportingRolesY += supportingRoles;
-					// backgroundRolesY += backgroundRoles;
+						acc.push({ x: i + 1, y: acc[acc.length - 1].y + allRoles });
+						return acc;
+					},
+					[{ x: 0, y: 0 }],
+				);
+				const mainRolesPoints: Point[] = seiyuusSortedByMainRoles.reduce(
+					(acc: Point[], { mainRoles }: SeiyuuSummary, i: number) => {
+						if(mainRoles === 0){
+							// Stop adding actors to array, as roles are now accounted for.
+							return acc;
+						}
 
-					allRolesPoints.push({ x: i + 1, y: allRolesY });
-					mainRolesPoints.push({ x: i + 1, y: mainRolesY });
-					supportingRolesPoints.push({ x: i + 1, y: supportingRolesY });
-					// backgroundRolesPoints.push({ x: i + 1, y: backgroundRolesY });
-				})
+						acc.push({ x: i + 1, y: acc[acc.length - 1].y + mainRoles });
+						return acc;
+					},
+					[{ x: 0, y: 0 }],
+				);
+				const supportingRolesPoints: Point[] = seiyuusSortedBySupportingRoles.reduce(
+					(acc: Point[], { supportingRoles }: SeiyuuSummary, i: number) => {
+						if(supportingRoles === 0){
+							// Stop adding actors to array, as roles are now accounted for.
+							return acc;
+						}
 
-				// console.log(backgroundRolesPoints);
+						acc.push({ x: i + 1, y: acc[acc.length - 1].y + supportingRoles });
+						return acc;
+					},
+					[{ x: 0, y: 0 }],
+				);
 
 				return {
 					...result,
-					allRolesPoints,
-					mainRolesPoints,
-					supportingRolesPoints,
-					// backgroundRolesPoints,
+
+					seiyuusSortedByAllRoles,
+					seiyuusSortedByMainRoles,
+					seiyuusSortedBySupportingRoles,
+
+					allRolesPoints: allRolesPoints.map(point => {
+						return {
+							x: point.x,
+							y: 100 * (point.y / allRolesPoints[allRolesPoints.length - 1].y),
+						};
+					}),
+					mainRolesPoints: mainRolesPoints.map(point => {
+						return {
+							x: point.x,
+							y: 100 * (point.y / mainRolesPoints[mainRolesPoints.length - 1].y),
+						};
+					}),
+					supportingRolesPoints: supportingRolesPoints.map(point => {
+						return {
+							x: point.x,
+							y: 100 * (point.y / supportingRolesPoints[supportingRolesPoints.length - 1].y),
+						};
+					}),
 				};
 			})
 			.finally(() => {
@@ -232,14 +269,15 @@
 			<p><em>Note that we wait 125 ms between requests to prevent being rate-limited by the server. This may be over-the-top.</em></p>
 		{:then result}
 			{#if result !== null}
-				<!-- <code>{JSON.stringify(result)}</code> -->
+				<!-- Guaranteed to be populated if result was populated -->
+				<!-- <code>{JSON.stringify(queryResultRaw)}</code> -->
 				<!-- <div style="position: relative; display: flex; justify-content: center; width: 100%; height: 300px;"></div> -->
 				<div style="display: inline-block; width: 300px; height: 300px;">
 					<UbiquityChart
 						title="All roles"
 						points={result.allRolesPoints}
 						y2={result.allRolesPoints[result.allRolesPoints.length - 1].y}
-						x2={result.seiyuus.length}
+						x2={result.allRolesPoints.length}
 					/>
 				</div>
 				<div style="display: inline-block; width: 300px; height: 300px;">
@@ -247,7 +285,7 @@
 						title="Main roles"
 						points={result.mainRolesPoints}
 						y2={result.mainRolesPoints[result.mainRolesPoints.length - 1].y}
-						x2={result.seiyuus.length}
+						x2={result.mainRolesPoints.length}
 					/>
 				</div>
 				<div style="display: inline-block; width: 300px; height: 300px;">
@@ -255,7 +293,7 @@
 						title="Supporting roles"
 						points={result.supportingRolesPoints}
 						y2={result.supportingRolesPoints[result.supportingRolesPoints.length - 1].y}
-						x2={result.seiyuus.length}
+						x2={result.supportingRolesPoints.length}
 					/>
 				</div>
 				<Results data={result}/>

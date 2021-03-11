@@ -39,8 +39,9 @@
       <span class="x label">{value}</span>
     </Pancake.Grid>
 
-    <Pancake.Grid horizontal count={3} let:value>
-      <span class="y label">{value}</span>
+    <Pancake.Grid horizontal count={3} let:value let:last>
+      <div class="y label"><span>{value} {last ? '%' : ''}</span></div>
+      <!-- <span class="y label">{value}</span> -->
     </Pancake.Grid>
 
     <Pancake.Svg>
@@ -52,6 +53,15 @@
 </div>
 
 <style>
+  .grid-line {
+    position: relative;
+    display: block;
+  }
+  .grid-line.horizontal {
+    width: calc(100% + 2em);
+    left: -2em;
+    border-bottom: 1px dashed #ccc;
+  }
   .title {
     white-space: pre;
   }
@@ -73,10 +83,11 @@
 
   .y.label {
     position: absolute;
-    left: -2.5em;
+    left: -3.5em;
     width: 2em;
     text-align: right;
     bottom: -0.5em;
+    white-space: pre;
   }
 
   .x.label {

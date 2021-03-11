@@ -1,9 +1,20 @@
 <script lang="ts">
-    import type { QueryResult } from "./query";
+    import type { QueryResultProcessed } from "./QueryResultProcessed";
 
-    export let data: QueryResult = { seiyuus: [], shows: {} };
+    export let data: Omit<QueryResultProcessed, "allRolesPoints"|"mainRolesPoints"|"supportingRolesPoints"> = {
+        seiyuusSortedByAllRoles: [],
+        seiyuusSortedByMainRoles: [],
+        seiyuusSortedBySupportingRoles: [],
+        shows: {},
+    };
+    let sortBy: "MAIN"|"SUPPORTING"|"ALL" = "ALL";
+    $: seiyuus = sortBy === "MAIN" ? 
+        data.seiyuusSortedByMainRoles : 
+            sortBy === "SUPPORTING" ? 
+                data.seiyuusSortedBySupportingRoles :
+                data.seiyuusSortedByAllRoles;
     const maxSeiyuusToShow = null;
-    $: slicedData = maxSeiyuusToShow === null ? data.seiyuus : data.seiyuus.slice(0, maxSeiyuusToShow);
+    $: slicedData = maxSeiyuusToShow === null ? seiyuus : seiyuus.slice(0, maxSeiyuusToShow);
 
     const maxImagesToShow = 5;
 </script>
