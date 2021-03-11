@@ -9,8 +9,8 @@ import type { default as EventEmitter } from "wolfy87-eventemitter";
 
 // Here we define our query as a multi-line string
 // Storing it in a separate .graphql/.gql file is also possible
-const mediaQuery: string = `
-query ($season: MediaSeason!, $seasonYear: Int!, $page: Int, $perPage: Int) {
+const mediaQuery: (restrictToSeason: boolean) => string = (restrictToSeason: boolean) => `
+query (${restrictToSeason ? "$season: MediaSeason!, " : ""}$seasonYear: Int!, $page: Int, $perPage: Int) {
   Page(page: $page, perPage: $perPage) {
     pageInfo {
       total
@@ -19,7 +19,7 @@ query ($season: MediaSeason!, $seasonYear: Int!, $page: Int, $perPage: Int) {
       lastPage
       hasNextPage
     }
-    media(season: $season, seasonYear: $seasonYear, type: ANIME, sort: START_DATE) {
+    media(${restrictToSeason ? "season: $season, " : ""}seasonYear: $seasonYear, type: ANIME, sort: START_DATE) {
       id
       title {
         english(stylised: true)
@@ -258,8 +258,10 @@ interface queryArgs {
 }
 
 export async function query({ quick, variables, progressMonitor }: queryArgs): Promise<QueryResult> {
+  // TODO: A full-year request may span 8 pages. We could give progress for that.
+
   // Make the HTTP Api request
-  return depaginateMedia({ url, query: mediaQuery, variables, firstPageOnly: quick })
+  return depaginateMedia({ url, query: mediaQuery(!!variables.season), variables, firstPageOnly: quick })
   .then(async (payload) => {
     // console.log(payload);
     const { media } = payload;
