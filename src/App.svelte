@@ -33,6 +33,18 @@
 		{ text: "🍁 Fall (Sep to Nov)", value: "FALL" },
 	];
 
+	interface SortOption {
+		text: string,
+		value: "ALL"|"SUPPORTING"|"MAIN",
+	}
+
+	const sortOptions: SortOption[] = [
+		{ text: "All roles", value: "ALL" },
+		{ text: "Supporting roles", value: "SUPPORTING" },
+		{ text: "Main roles", value: "MAIN" },
+	];
+	let sortOption: SortOption = sortOptions.find(sortOption => sortOption.value === "MAIN")!;
+
 	function getCurrentSeason(currentDate: Date): MediaSeason {
 		const currentMonth: number = currentDate.getMonth() + 1;
 
@@ -296,7 +308,21 @@
 						x2={result.mainRolesPoints.length}
 					/>
 				</div>
-				<Results data={result} sortBy="MAIN"/>
+
+				<div style="padding: 8px;">
+					<label>
+						Sort by: 
+						<select bind:value={sortOption}>
+							{#each sortOptions as sortOption}
+								<option value={sortOption}>
+									{sortOption.text}
+								</option>
+							{/each}
+						</select>
+					</label>
+				</div>
+
+				<Results data={result} sortBy={sortOption.value}/>
 			{/if}
 		{:catch error}
 			<p style="color: red">{error.message}</p>
