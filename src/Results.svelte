@@ -7,7 +7,7 @@
         seiyuusSortedBySupportingRoles: [],
         shows: {},
     };
-    let sortBy: "MAIN"|"SUPPORTING"|"ALL" = "ALL";
+    export let sortBy: "MAIN"|"SUPPORTING"|"ALL" = "ALL";
     $: seiyuus = sortBy === "MAIN" ? 
         data.seiyuusSortedByMainRoles : 
             sortBy === "SUPPORTING" ? 

@@ -282,21 +282,21 @@
 				</div>
 				<div style="display: inline-block; width: 300px; height: 300px;">
 					<UbiquityChart
-						title="Main roles"
-						points={result.mainRolesPoints}
-						y2={result.mainRolesPoints[result.mainRolesPoints.length - 1].y}
-						x2={result.mainRolesPoints.length}
-					/>
-				</div>
-				<div style="display: inline-block; width: 300px; height: 300px;">
-					<UbiquityChart
 						title="Supporting roles"
 						points={result.supportingRolesPoints}
 						y2={result.supportingRolesPoints[result.supportingRolesPoints.length - 1].y}
 						x2={result.supportingRolesPoints.length}
 					/>
 				</div>
-				<Results data={result}/>
+				<div style="display: inline-block; width: 300px; height: 300px;">
+					<UbiquityChart
+						title="Main roles"
+						points={result.mainRolesPoints}
+						y2={result.mainRolesPoints[result.mainRolesPoints.length - 1].y}
+						x2={result.mainRolesPoints.length}
+					/>
+				</div>
+				<Results data={result} sortBy="MAIN"/>
 			{/if}
 		{:catch error}
 			<p style="color: red">{error.message}</p>
