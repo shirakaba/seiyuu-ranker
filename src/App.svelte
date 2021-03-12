@@ -80,6 +80,24 @@
 	let queryProgress: number|null = null;
 	let queryResultRaw: QueryResult|null = null;
 
+	function mockSelecter(year: string, season: MediaSeason): string {
+		if(year === "2020"){
+			return "./2020_winter.json";
+		}
+
+		if(year === "2021"){
+			if(season === "SPRING"){
+				return "./2021_spring.json";
+			}
+	
+			if(season === "WINTER"){
+				return "./2021_winter.json";
+			}
+		}
+
+		return "./2021_winter.json";
+	}
+
 	const mock: boolean = true;
 	function onSubmit(): void {
 		if(submissionInFlight){
@@ -95,7 +113,7 @@
 
 		submissionPromise = (
 				mock ? 
-					fetch("./2021_winter.json")
+					fetch(mockSelecter(year, selectedSeason.value))
 					.then((response) => {
 						return response.json()
 						.then((json) => {
@@ -285,8 +303,8 @@
 			<p><em>Note that we wait 125 ms between requests to prevent being rate-limited by the server. This may be over-the-top.</em></p>
 		{:then result}
 			{#if result !== null}
-				<!-- Guaranteed to be populated if result was populated -->
 				<!-- <code>{JSON.stringify(queryResultRaw)}</code> -->
+			
 				<!-- <div style="position: relative; display: flex; justify-content: center; width: 100%; height: 300px;"></div> -->
 				<div style="display: inline-block; width: 300px; height: 300px;">
 					<UbiquityChart
