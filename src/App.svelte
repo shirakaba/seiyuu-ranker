@@ -20,6 +20,7 @@
 	}
 
 	let restrictToSeason: boolean = true;
+	let pendingRateLimit: number|null = null;
 
 	interface SeasonOption {
 		text: string,
@@ -110,6 +111,14 @@
 			queryProgress = (numerator / denominator) * 100;
 		};
 		progressMonitor.on("update", onUpdate);
+		const onRateLimitUpdate = (rateLimited: boolean, duration: number) => {
+			if(!rateLimited){
+				pendingRateLimit = null;
+				return;
+			}
+			pendingRateLimit = duration;
+		};
+		progressMonitor.on("rateLimitUpdate", onRateLimitUpdate);
 
 		submissionPromise = (
 				mock ? 
@@ -130,10 +139,6 @@
 						},
 						progressMonitor,
 						quick: false,
-						/**
-						 * Waiting 125 ms between requests still makes us hit the "too many requests" limit.
-						 */
-						rateLimitMs: restrictToSeason ? 125 : 250,
 					})
 			)
 			.then<QueryResultProcessed>((result: QueryResult) => {
@@ -296,11 +301,20 @@
 
 		<div>
 			<progress bind:this={progressBar} style="display: {(submissionInFlight) ? "inline-block" : "none"}" max="100" value={queryProgress}></progress>
+			{#if pendingRateLimit}
+				<p><em>
+					Currently <a href="https://anilist.gitbook.io/anilist-apiv2-docs/overview/rate-limiting">rate-limited</a>.
+					{#if Number.isNaN(pendingRateLimit)}
+						Will continue in one minute...
+					{:else}
+						Will continue in {pendingRateLimit} seconds...
+					{/if}
+				</em></p>
+			{/if}
 		</div>
 
 		{#await submissionPromise}
 			<p>Requesting data...</p>
-			<p><em>Note that we wait 125 ms between requests to prevent being rate-limited by the server. This may be over-the-top.</em></p>
 		{:then result}
 			{#if result !== null}
 				<!-- <code>{JSON.stringify(queryResultRaw)}</code> -->

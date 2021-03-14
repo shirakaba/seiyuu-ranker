@@ -136,6 +136,7 @@ interface depaginateMediaArgs {
   variables: any,
   firstPageOnly?: boolean,
   rateLimitMs?: number,
+  progressMonitor?: EventEmitter,
 }
 
 async function depaginateMedia({
@@ -143,7 +144,7 @@ async function depaginateMedia({
   query,
   variables,
   firstPageOnly = false,
-  rateLimitMs = 125,
+  progressMonitor,
 }: depaginateMediaArgs){
   const explicitPage = variables.page ?? 1;
 
@@ -159,9 +160,23 @@ async function depaginateMedia({
   );
 
   const json = await response.json();
-  if(!response.ok){
+  if(!response.ok && response.status !== 429){
     return Promise.reject(json);
   }
+
+  // Too Many Requests
+  if(response.status === 429){
+    const suggestedRetryAfter: number = parseInt(response.headers.get("Retry-After"));
+    progressMonitor.emit("rateLimitUpdate", true, suggestedRetryAfter);
+    const retryAfter: number = Number.isNaN(suggestedRetryAfter) ? suggestedRetryAfter : 60;
+    if(retryAfter > MAX_ACCEPTABLE_RETRY_AFTER){
+      // Prevents the server indefinitely holding our client logic hostage.
+      return Promise.reject(json);
+    }
+
+    await new Promise<void>((resolve) => setTimeout(() => resolve(), (retryAfter + 1) * 1000));
+  }
+  progressMonitor.emit("rateLimitUpdate", false);
 
   // console.log(json);
   const { pageInfo, media } = json.data.Page;
@@ -173,9 +188,6 @@ async function depaginateMedia({
     return { media };
   }
 
-  // Wait 125 ms just to go easy on their servers.
-  await new Promise<void>((resolve) => setTimeout(() => resolve(), rateLimitMs));
-
   const depaginated = await depaginateMedia({
     url,
     query,
@@ -183,6 +195,7 @@ async function depaginateMedia({
       ...variables,
       page: explicitPage + 1,
     },
+    progressMonitor,
   });
 
   return {
@@ -196,14 +209,17 @@ interface depaginateCharactersArgs {
   variables: any, 
   firstPageOnly?: boolean,
   rateLimitMs?: number,
+  progressMonitor?: EventEmitter,
 }
+
+const MAX_ACCEPTABLE_RETRY_AFTER = 90;
 
 async function depaginateCharacters({
   url,
   query,
   variables,
   firstPageOnly = false,
-  rateLimitMs = 125,
+  progressMonitor,
 }: depaginateCharactersArgs){
   const explicitPage = variables.page ?? 1;
 
@@ -219,9 +235,24 @@ async function depaginateCharacters({
   );
 
   const json = await response.json();
-  if(!response.ok){
+  if(!response.ok && response.status !== 429){
     return Promise.reject(json);
   }
+
+  // Too Many Requests
+  if(response.status === 429){
+    const suggestedRetryAfter: number = parseInt(response.headers.get("Retry-After"));
+    progressMonitor.emit("rateLimitUpdate", true, suggestedRetryAfter);
+    const retryAfter: number = Number.isNaN(suggestedRetryAfter) ? suggestedRetryAfter : 60;
+    if(retryAfter > MAX_ACCEPTABLE_RETRY_AFTER){
+      // Prevents the server indefinitely holding our client logic hostage.
+      return Promise.reject(json);
+    }
+
+    await new Promise<void>((resolve) => setTimeout(() => resolve(), (retryAfter + 1) * 1000));
+  }
+
+  progressMonitor.emit("rateLimitUpdate", false);
 
   // console.log(json);
   const { pageInfo, edges } = json.data.Media.characters;
@@ -233,9 +264,6 @@ async function depaginateCharacters({
     return { edges };
   }
 
-  // Wait 125 ms just to go easy on their servers.
-  await new Promise<void>((resolve) => setTimeout(() => resolve(), rateLimitMs));
-
   const depaginated = await depaginateCharacters({
     url,
     query,
@@ -243,6 +271,7 @@ async function depaginateCharacters({
       ...variables,
       page: explicitPage + 1,
     },
+    progressMonitor,
   });
 
   return {
@@ -259,14 +288,19 @@ interface queryArgs {
     season?: MediaSeason,
   },
   progressMonitor?: EventEmitter,
-  rateLimitMs?: number,
 }
 
-export async function query({ quick, variables, progressMonitor, rateLimitMs = 125 }: queryArgs): Promise<QueryResult> {
+export async function query({ quick, variables, progressMonitor }: queryArgs): Promise<QueryResult> {
   // TODO: A full-year request may span 8 pages. We could give progress for that.
 
   // Make the HTTP Api request
-  return depaginateMedia({ url, query: mediaQuery(!!variables.season), variables, firstPageOnly: quick })
+  return depaginateMedia({
+    url,
+    query: mediaQuery(!!variables.season),
+    variables,
+    firstPageOnly: quick,
+    progressMonitor,
+  })
   .then(async (payload) => {
     // console.log(payload);
     const { media } = payload;
@@ -305,7 +339,7 @@ export async function query({ quick, variables, progressMonitor, rateLimitMs = 1
               page: 1,
             },
             firstPageOnly: quick,
-            rateLimitMs,
+            progressMonitor,
           })
           .then((depaginatedCharacters) => {
             console.log(`[deepDepaginatedMedia.reduce 2] media id: ${id}; characters page ${currentPage} / ${lastPage} (${perPage} edges per page / ${total} total); hasNextPage: ${hasNextPage}`);
