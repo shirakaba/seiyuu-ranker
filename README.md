@@ -29,7 +29,7 @@ If you're using [Visual Studio Code](https://code.visualstudio.com/) we recommen
 
 ## Usage
 
-Just fill in the form and submit it! For whole-year queries, you will likely have to wait an extra minute for all the requests to complete due to [AniList's rate-limiting](https://anilist.gitbook.io/anilist-apiv2-docs/overview/rate-limiting).
+Just fill in the form and submit it! For whole-year queries, you will likely have to wait an extra minute for all the requests to complete due to [AniList's rate-limiting](https://anilist.gitbook.io/anilist-apiv2-docs/overview/rate-limiting). But don't worry; the app will tell you at the time if it does have to wait due to rate limiting.
 
 Submitting this form executes a fair few queries; it's easy to go over 100, for example. So as not to pummel the AniList DB too hard, I run requests back-to-back and use mock data where possible during development (see the `.json` files in the `public` folder, which I don't guarantee to all follow the latest schema).
 
