@@ -108,6 +108,7 @@
 	}
 
 	const mock: boolean = false;
+	const printResponse: boolean = false;
 	function onSubmit(): void {
 		if(submissionInFlight){
 			return;
@@ -366,7 +367,7 @@
 			<p>Requesting data...</p>
 		{:then result}
 			{#if result !== null}
-				{#if !mock}
+				{#if printResponse}
 					<code>{JSON.stringify(queryResultRaw)}</code>
 				{/if}
 			
