@@ -45,9 +45,11 @@
     tbody > tr:nth-child(even){background-color: #f2f2f2;}
     .headRow {
         font-weight: bold;
+        font-size: 14px;
     }
     .bodyRow {
         vertical-align: top;
+        font-size: 12px;
     }
     .showTitle {
         /* overflow: hidden; */
