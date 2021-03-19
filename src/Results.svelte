@@ -45,32 +45,36 @@
                     <td>{allRoles}</td>
                 </tr>
                 <tr>
-                    <td class="roles">Main</td>
+                    <td class="roles main">Main</td>
                     <td>{mainRoles}</td>
                 </tr>
                 <tr>
-                    <td class="roles">Supporting</td>
+                    <td class="roles supporting">Supporting</td>
                     <td>{supportingRoles}</td>
                 </tr>
                 <tr>
-                    <td class="roles">Background</td>
+                    <td class="roles background">Background</td>
                     <td>{backgroundRoles}</td>
                 </tr>
                 
                 <tr>
                     <td colspan="3">
-                        <details>
+                        <details open={index === 0}>
                             <summary>See roles</summary>
                             <RolesTable
-                                characters={showIds.map(showId => {
-                                    const show = data.shows[showId];
-                                    if(show){
-                                        console.log(`HIT: show ${showId}`, data.shows[showId]);
-                                    } else {
-                                        console.log(`MISS: show ${showId}`, data.shows[showId]);
-                                    }
-                                    return data.shows[showId]?.seiyuus[id] ?? [];
-                                }).flat()}
+                                showsToCharacters={showIds.map(showId => {
+                                    const {
+                                        preferredTitle: showPreferredTitle,
+                                        seiyuus,
+                                    } = data.shows[showId];
+
+                                    const charactersForSeiyuu = seiyuus[id];
+
+                                    return {
+                                        showPreferredTitle,
+                                        charactersForSeiyuu,
+                                    };
+                                })}
                             />
                         </details>
                     </td>
@@ -132,6 +136,15 @@
     }
     .roles {
         text-transform: lowercase;
+    }
+    .roles.main {
+        /* background-color: green; */
+    }
+    .roles.supporting {
+        /* background-color: orange; */
+    }
+    .roles.background {
+        /* background-color: yellow; */
     }
     .showsHeader {
         text-transform: uppercase;
