@@ -60,12 +60,6 @@ query (${restrictToSeason ? "$season: MediaSeason!, " : ""}$seasonYear: Int!, $p
 }
 `;
 
-// Define our query variables and values that will be used in the query request
-const mediaVariables = {
-  seasonYear: 2021,
-  season: "WINTER",
-};
-
 const charactersQuery: string = `
 query ($page: Int, $id: Int) {
   Media(id: $id) {
@@ -107,11 +101,6 @@ query ($page: Int, $id: Int) {
   }
 }
 `;
-
-const charactersVariables = {
-  page: 1,
-  id: 110277
-};
 
 // Define the config we'll need for our Api request
 const url = "https://graphql.anilist.co";
@@ -175,6 +164,13 @@ async function depaginateMedia({
     }
 
     await new Promise<void>((resolve) => setTimeout(() => resolve(), (retryAfter + 1) * 1000));
+    return await depaginateMedia({
+      url,
+      query,
+      variables,
+      firstPageOnly,
+      progressMonitor,
+    });
   }
   progressMonitor.emit("rateLimitUpdate", false);
 
@@ -250,6 +246,13 @@ async function depaginateCharacters({
     }
 
     await new Promise<void>((resolve) => setTimeout(() => resolve(), (retryAfter + 1) * 1000));
+    return await depaginateCharacters({
+      url,
+      query,
+      variables,
+      firstPageOnly,
+      progressMonitor,
+    });
   }
 
   progressMonitor.emit("rateLimitUpdate", false);
