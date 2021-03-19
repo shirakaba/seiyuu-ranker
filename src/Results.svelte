@@ -96,11 +96,14 @@
                     <td class="roles background">Background</td>
                     <td>{backgroundRoles}</td>
                 </tr>
+
+                <tr colspan="3" style="height: 8px;"></tr>
                 
                 <tr>
                     <td colspan="3">
                         <details open={index < maxDetailsToShow}>
                             <summary>Roles</summary>
+                            <div style="height: 8px; width: 100%;"></div>
                             <RolesTable characters={getShowsForSeiyuu(id, showIds)}/>
                         </details>
                     </td>

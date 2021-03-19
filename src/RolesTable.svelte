@@ -42,6 +42,7 @@
 </table>
 
 <style>
+    tbody > tr:nth-child(even){background-color: #f2f2f2;}
     .headRow {
         font-weight: bold;
     }
