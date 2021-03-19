@@ -2,6 +2,7 @@
     import type { SeiyuuSummary } from "./query";
     import type { QueryResultProcessed } from "./QueryResultProcessed";
     import RolesTable from "./RolesTable.svelte";
+    import type { CharacterWithShow } from "./RolesTableTypes";
 
     export let data: Omit<QueryResultProcessed, "allRolesPoints"|"mainRolesPoints"|"supportingRolesPoints"> = {
         seiyuusSortedByAllRoles: [],
@@ -23,6 +24,43 @@
     $: seiyuusSliced = maxSeiyuusToShow === null ? seiyuus : seiyuus.slice(0, maxSeiyuusToShow);
 
     const maxImagesToShow = 5;
+
+    const roleValues = {
+        MAIN: 3,
+        SUPPORTING: 2,
+        BACKGROUND: 1,
+        UNCLASSIFIED: 0,
+    } as const;
+
+    function getShowsForSeiyuu(seiyuuId: string, showIds: number[]): CharacterWithShow[] {
+        const characters: CharacterWithShow[] = [];
+
+        showIds.forEach(showId => {
+            const {
+                preferredTitle: showPreferredTitle,
+                seiyuus,
+            } = data.shows[showId];
+
+            seiyuus[seiyuuId].forEach((characterForSeiyuu: Character) => {
+                characters.push({
+                    ...characterForSeiyuu,
+                    showId,
+                    showPreferredTitle,
+                });
+            });
+        });
+
+        // Sort desc, such that: main > supp > back > other
+        return characters.sort((a, b) => {
+            const { role: roleA } = a;
+            const { role: roleB } = b;
+
+            const countA = roleValues[roleA];
+            const countB = roleValues[roleB];
+        
+            return countB - countA;
+        });
+    }
 </script>
 
 <div class="container">
@@ -61,21 +99,7 @@
                     <td colspan="3">
                         <details open={index === 0}>
                             <summary>See roles</summary>
-                            <RolesTable
-                                showsToCharacters={showIds.map(showId => {
-                                    const {
-                                        preferredTitle: showPreferredTitle,
-                                        seiyuus,
-                                    } = data.shows[showId];
-
-                                    const charactersForSeiyuu = seiyuus[id];
-
-                                    return {
-                                        showPreferredTitle,
-                                        charactersForSeiyuu,
-                                    };
-                                })}
-                            />
+                            <RolesTable characters={getShowsForSeiyuu(id, showIds)}/>
                         </details>
                     </td>
                 </tr>
