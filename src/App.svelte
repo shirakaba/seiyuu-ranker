@@ -107,7 +107,7 @@
 		return "./2021_winter.json";
 	}
 
-	const mock: boolean = false;
+	const mock: boolean = true;
 	function onSubmit(): void {
 		if(submissionInFlight){
 			return;

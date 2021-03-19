@@ -39,7 +39,7 @@
       <span class="x label">{value}</span>
     </Pancake.Grid>
 
-    <Pancake.Grid horizontal count={3} let:value let:last>
+    <Pancake.Grid horizontal count={5} let:value let:last>
       <div class="y label"><span>{value} {last ? '%' : ''}</span></div>
       <!-- <span class="y label">{value}</span> -->
     </Pancake.Grid>
@@ -88,6 +88,7 @@
     text-align: right;
     bottom: -0.5em;
     white-space: pre;
+    font-size: 12px;
   }
 
   .x.label {
@@ -97,6 +98,7 @@
     bottom: -22px;
     font-family: sans-serif;
     text-align: center;
+    font-size: 12px;
   }
 
   path.data {

@@ -10,9 +10,6 @@
         seiyuusSortedBySupportingRoles: [],
         shows: {},
     };
-    $: {
-        console.log(`data.shows`, data.shows);
-    }
     export let sortBy: "MAIN"|"SUPPORTING"|"ALL" = "ALL";
     let seiyuus: SeiyuuSummary[];
     $: seiyuus = sortBy === "MAIN" ? 

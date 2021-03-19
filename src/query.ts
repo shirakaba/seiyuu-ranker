@@ -155,13 +155,15 @@ async function depaginateMedia({
 
   // Too Many Requests
   if(response.status === 429){
-    const suggestedRetryAfter: number = parseInt(response.headers.get("Retry-After"));
-    progressMonitor.emit("rateLimitUpdate", true, suggestedRetryAfter);
-    const retryAfter: number = Number.isNaN(suggestedRetryAfter) ? suggestedRetryAfter : 60;
+    const resetTime: number = parseInt(response.headers.get("X-RateLimit-Reset"));
+    const retryAfter: number = Number.isNaN(resetTime) ? (resetTime - (Date.now() / 1000)) : 60;
+    console.log(`[depaginateMedia] got 429 response with retryAfter ${retryAfter}`);
+
     if(retryAfter > MAX_ACCEPTABLE_RETRY_AFTER){
       // Prevents the server indefinitely holding our client logic hostage.
       return Promise.reject(json);
     }
+    progressMonitor.emit("rateLimitUpdate", true, retryAfter);
 
     await new Promise<void>((resolve) => setTimeout(() => resolve(), (retryAfter + 1) * 1000));
     return await depaginateMedia({
@@ -237,13 +239,14 @@ async function depaginateCharacters({
 
   // Too Many Requests
   if(response.status === 429){
-    const suggestedRetryAfter: number = parseInt(response.headers.get("Retry-After"));
-    progressMonitor.emit("rateLimitUpdate", true, suggestedRetryAfter);
-    const retryAfter: number = Number.isNaN(suggestedRetryAfter) ? suggestedRetryAfter : 60;
+    const resetTime: number = parseInt(response.headers.get("X-RateLimit-Reset"));
+    const retryAfter: number = Number.isNaN(resetTime) ? (resetTime - (Date.now() / 1000)) : 60;
+    console.log(`[depaginateCharacters] got 429 response with retryAfter ${retryAfter}`);
     if(retryAfter > MAX_ACCEPTABLE_RETRY_AFTER){
       // Prevents the server indefinitely holding our client logic hostage.
       return Promise.reject(json);
     }
+    progressMonitor.emit("rateLimitUpdate", true, retryAfter);
 
     await new Promise<void>((resolve) => setTimeout(() => resolve(), (retryAfter + 1) * 1000));
     return await depaginateCharacters({
