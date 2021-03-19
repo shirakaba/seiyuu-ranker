@@ -317,7 +317,9 @@
 			<p>Requesting data...</p>
 		{:then result}
 			{#if result !== null}
-				<!-- <code>{JSON.stringify(queryResultRaw)}</code> -->
+				{#if !mock}
+					<code>{JSON.stringify(queryResultRaw)}</code>
+				{/if}
 			
 				<!-- <div style="position: relative; display: flex; justify-content: center; width: 100%; height: 300px;"></div> -->
 				<div style="display: inline-block; width: 300px; height: 300px;">

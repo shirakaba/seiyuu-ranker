@@ -1,5 +1,7 @@
 <script lang="ts">
+    import type { SeiyuuSummary } from "./query";
     import type { QueryResultProcessed } from "./QueryResultProcessed";
+    import RolesTable from "./RolesTable.svelte";
 
     export let data: Omit<QueryResultProcessed, "allRolesPoints"|"mainRolesPoints"|"supportingRolesPoints"> = {
         seiyuusSortedByAllRoles: [],
@@ -7,20 +9,24 @@
         seiyuusSortedBySupportingRoles: [],
         shows: {},
     };
+    $: {
+        console.log(`data.shows`, data.shows);
+    }
     export let sortBy: "MAIN"|"SUPPORTING"|"ALL" = "ALL";
+    let seiyuus: SeiyuuSummary[];
     $: seiyuus = sortBy === "MAIN" ? 
         data.seiyuusSortedByMainRoles : 
             sortBy === "SUPPORTING" ? 
                 data.seiyuusSortedBySupportingRoles :
                 data.seiyuusSortedByAllRoles;
-    const maxSeiyuusToShow = null;
-    $: slicedData = maxSeiyuusToShow === null ? seiyuus : seiyuus.slice(0, maxSeiyuusToShow);
+    const maxSeiyuusToShow: number|null = null;
+    $: seiyuusSliced = maxSeiyuusToShow === null ? seiyuus : seiyuus.slice(0, maxSeiyuusToShow);
 
     const maxImagesToShow = 5;
 </script>
 
 <div class="container">
-    {#each slicedData as { id, mainRoles, supportingRoles, backgroundRoles, allRoles, fullName, image, siteUrl, showIds }, index }
+    {#each seiyuusSliced as { id, mainRoles, supportingRoles, backgroundRoles, allRoles, fullName, image, siteUrl, showIds }, index }
         <div class="card">
             <table class="seiyuu">
                 {#if index < maxImagesToShow}
@@ -30,7 +36,7 @@
                         </td>
                     </tr>
                 {/if}
-                <tr class="seiyuuNameRow"><td colspan="3"><a class="seiyuuName" href={siteUrl}>#{index + 1} {fullName}</a></td></tr>
+                <tr class="seiyuuNameRow"><td colspan="3">#{index + 1} <a class="seiyuuName" href={siteUrl}>{fullName}</a></td></tr>
                 <tr>
                     <td rowSpan="4" class="roleHeader">
                         <div>Roles</div>
@@ -49,6 +55,25 @@
                 <tr>
                     <td class="roles">Background</td>
                     <td>{backgroundRoles}</td>
+                </tr>
+                
+                <tr>
+                    <td colspan="3">
+                        <details>
+                            <summary>See roles</summary>
+                            <RolesTable
+                                characters={showIds.map(showId => {
+                                    const show = data.shows[showId];
+                                    if(show){
+                                        console.log(`HIT: show ${showId}`, data.shows[showId]);
+                                    } else {
+                                        console.log(`MISS: show ${showId}`, data.shows[showId]);
+                                    }
+                                    return data.shows[showId]?.seiyuus[id] ?? [];
+                                }).flat()}
+                            />
+                        </details>
+                    </td>
                 </tr>
 
                 <!-- TODO: links to shows -->

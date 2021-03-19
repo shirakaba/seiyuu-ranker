@@ -360,7 +360,7 @@ export async function query({ quick, variables, progressMonitor }: queryArgs): P
     console.log(`Shows this season for which character info is available: ${mediaWithCharactersData.length} / ${deepDepaginatedMedia.length}`);
   
     mediaWithCharactersData.forEach((medium) => {
-      const { id, title, characters } = medium;
+      const { id: showId, title, characters } = medium;
       const { english, romaji, native } = title;
       const preferredTitle = english ?? romaji ?? native ?? "[Title missing]";
   
@@ -368,7 +368,7 @@ export async function query({ quick, variables, progressMonitor }: queryArgs): P
         preferredTitle,
         seiyuus: {},
       };
-      showsMap.set(id, show);
+      showsMap.set(showId, show);
   
       characters.edges.forEach((character) => {
         const { role, voiceActors, node: { id: characterId, name: characterName } } = character;
@@ -376,23 +376,23 @@ export async function query({ quick, variables, progressMonitor }: queryArgs): P
         const distinctVoiceActorsForCharacter = new Set();
   
         voiceActors.forEach((voiceActor) => {
-          const { id, name: { full: fullName }, image: { large: image }, siteUrl } = voiceActor;
+          const { id: seiyuuId, name: { full: fullName }, image: { large: image }, siteUrl } = voiceActor;
 
-          const alreadyVisited = distinctVoiceActorsForCharacter.has(id);
+          const alreadyVisited = distinctVoiceActorsForCharacter.has(seiyuuId);
           if(alreadyVisited){
             // Guard against their duplicates problem
             return;
           }
 
-          if(!show.seiyuus[id]){
-            show.seiyuus[id] = [];
+          if(!show.seiyuus[seiyuuId]){
+            show.seiyuus[seiyuuId] = [];
           }
-          show.seiyuus[id].push({
+          show.seiyuus[seiyuuId].push({
             role: role ?? "UNCLASSIFIED",
             name: characterName?.full ?? characterName?.native ?? "[Name missing]",
           });
   
-          const existingEntry = voiceActorsMap.get(id);
+          const existingEntry = voiceActorsMap.get(seiyuuId);
           if(existingEntry){
             existingEntry.allRoles++;
             if(role === "MAIN"){
@@ -404,10 +404,10 @@ export async function query({ quick, variables, progressMonitor }: queryArgs): P
             } else {
               existingEntry.unclassifiedRoles++;
             }
-            existingEntry.shows.push(id);
+            existingEntry.shows.push(showId);
             return;
           }
-          voiceActorsMap.set(id, {
+          voiceActorsMap.set(seiyuuId, {
             mainRoles: role === "MAIN" ? 1 : 0,
             supportingRoles: role === "SUPPORTING" ? 1 : 0,
             backgroundRoles: role === "BACKGROUND" ? 1 : 0,
@@ -417,7 +417,7 @@ export async function query({ quick, variables, progressMonitor }: queryArgs): P
             fullName,
             image,
             siteUrl,
-            shows: [id],
+            shows: [showId],
           });
         });
       });
@@ -492,12 +492,12 @@ export interface ShowsSummary {
   [id: string]: ShowSummary,
 }
 
-interface ShowSummary {
+export interface ShowSummary {
   preferredTitle: string,
   seiyuus: Record<string, Character[]>,
 }
 
-interface Character {
+export interface Character {
   role: "MAIN"|"SUPPORTING"|"BACKGROUND"|"UNCLASSIFIED",
   name: string,
 }
