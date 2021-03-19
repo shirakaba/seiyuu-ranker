@@ -81,12 +81,20 @@
 	let queryProgress: number|null = null;
 	let queryResultRaw: QueryResult|null = null;
 
-	function mockSelecter(year: string, season: MediaSeason): string {
+	function mockSelector(year: string, season: MediaSeason|null): string {
 		if(year === "2020"){
+			if(season === null){
+				return "./2020_all.json";
+			}
+
 			return "./2020_winter.json";
 		}
 
 		if(year === "2021"){
+			if(season === null){
+				return "./2021_all.json";
+			}
+
 			if(season === "SPRING"){
 				return "./2021_spring.json";
 			}
@@ -99,7 +107,7 @@
 		return "./2021_winter.json";
 	}
 
-	const mock: boolean = true;
+	const mock: boolean = false;
 	function onSubmit(): void {
 		if(submissionInFlight){
 			return;
@@ -122,7 +130,7 @@
 
 		submissionPromise = (
 				mock ? 
-					fetch(mockSelecter(year, selectedSeason.value))
+					fetch(mockSelector(year, restrictToSeason ? selectedSeason.value : null))
 					.then((response) => {
 						return response.json()
 						.then((json) => {
