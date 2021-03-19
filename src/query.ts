@@ -388,6 +388,7 @@ export async function query({ quick, variables, progressMonitor }: queryArgs): P
             show.seiyuus[seiyuuId] = [];
           }
           show.seiyuus[seiyuuId].push({
+            id: characterId,
             role: role ?? "UNCLASSIFIED",
             name: characterName?.full ?? characterName?.native ?? "[Name missing]",
           });
@@ -498,6 +499,7 @@ export interface ShowSummary {
 }
 
 export interface Character {
+  id: number,
   role: "MAIN"|"SUPPORTING"|"BACKGROUND"|"UNCLASSIFIED",
   name: string,
 }

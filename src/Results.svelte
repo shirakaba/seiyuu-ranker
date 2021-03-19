@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { SeiyuuSummary } from "./query";
+    import type { SeiyuuSummary, Character } from "./query";
     import type { QueryResultProcessed } from "./QueryResultProcessed";
     import RolesTable from "./RolesTable.svelte";
     import type { CharacterWithShow } from "./RolesTableTypes";
@@ -23,7 +23,8 @@
     const maxSeiyuusToShow: number|null = null;
     $: seiyuusSliced = maxSeiyuusToShow === null ? seiyuus : seiyuus.slice(0, maxSeiyuusToShow);
 
-    const maxImagesToShow = 5;
+    const maxImagesToShow = 10;
+    const maxDetailsToShow = 10;
 
     const roleValues = {
         MAIN: 3,
@@ -44,8 +45,9 @@
             seiyuus[seiyuuId].forEach((characterForSeiyuu: Character) => {
                 characters.push({
                     ...characterForSeiyuu,
-                    showId,
                     showPreferredTitle,
+                    showUrl: `https://anilist.co/anime/${showId}`,
+                    characterUrl: `https://anilist.co/character/${characterForSeiyuu.id}`,
                 });
             });
         });
@@ -97,17 +99,12 @@
                 
                 <tr>
                     <td colspan="3">
-                        <details open={index === 0}>
-                            <summary>See roles</summary>
+                        <details open={index < maxDetailsToShow}>
+                            <summary>Roles</summary>
                             <RolesTable characters={getShowsForSeiyuu(id, showIds)}/>
                         </details>
                     </td>
                 </tr>
-
-                <!-- TODO: links to shows -->
-                <!-- <tr>
-                    <td class="showsHeader">Shows</td>
-                </tr> -->
             </table>
         </div>
         
@@ -160,15 +157,6 @@
     }
     .roles {
         text-transform: lowercase;
-    }
-    .roles.main {
-        /* background-color: green; */
-    }
-    .roles.supporting {
-        /* background-color: orange; */
-    }
-    .roles.background {
-        /* background-color: yellow; */
     }
     .showsHeader {
         text-transform: uppercase;

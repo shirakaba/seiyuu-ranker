@@ -20,24 +20,31 @@
 
 <table>
     <thead>
-        <tr>
+        <tr class="headRow">
             <td>Role</td>
             <td>Show</td>
             <td>Name</td>
         </tr>
     </thead>
     <tbody>
-        {#each characters as { showPreferredTitle, role, name }}
+        {#each characters as { showPreferredTitle, role, name, characterUrl, showUrl }}
             <tr class="bodyRow">
                 <td>{presentRole(role)}</td>
-                <td class="showTitle">{showPreferredTitle}</td>
-                <td>{name}</td>
+                <td class="showTitle">
+                    <a href={showUrl}>{showPreferredTitle}</a>
+                </td>
+                <td>
+                    <a href={characterUrl}>{name}</a>
+                </td>
             </tr>
         {/each}
     </tbody>
 </table>
 
 <style>
+    .headRow {
+        font-weight: bold;
+    }
     .bodyRow {
         vertical-align: top;
     }
