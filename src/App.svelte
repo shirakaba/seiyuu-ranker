@@ -107,7 +107,7 @@
 		return "./2021_winter.json";
 	}
 
-	const mock: boolean = false;
+	const mock: boolean = true;
 	function onSubmit(): void {
 		if(submissionInFlight){
 			return;
@@ -155,23 +155,64 @@
 				queryResultRaw = result;
 				const { seiyuuSummaries } = result;
 
+				/**
+				 * Our sorting approach is to sort by the desired role type first.
+				 * In the case of a tie, we sort by the next-most-valuable role, in the precedence:
+				 * main > supporting > all
+				 */
 				const seiyuusSortedByAllRoles = [...seiyuuSummaries].sort((a, b) => {
-					const { allRoles: countA } = a;
-					const { allRoles: countB } = b;
+					const { allRoles: allRolesA, mainRoles: mainRolesA, supportingRoles: supportingRolesA } = a;
+					const { allRoles: allRolesB, mainRoles: mainRolesB, supportingRoles: supportingRolesB } = b;
+
+					if(allRolesA !== allRolesB){
+						return allRolesB - allRolesA;
+					}
+
+					if(mainRolesA !== mainRolesB){
+						return mainRolesB - mainRolesA;
+					}
+
+					if(supportingRolesA !== supportingRolesB){
+						return supportingRolesB - supportingRolesA;
+					}
 				
-					return countB - countA;
+					return 0;
 				});
 				const seiyuusSortedByMainRoles = [...seiyuuSummaries].sort((a, b) => {
-					const { mainRoles: countA } = a;
-					const { mainRoles: countB } = b;
-				
-					return countB - countA;
+					const { allRoles: allRolesA, mainRoles: mainRolesA, supportingRoles: supportingRolesA } = a;
+					const { allRoles: allRolesB, mainRoles: mainRolesB, supportingRoles: supportingRolesB } = b;
+
+					if(mainRolesA !== mainRolesB){
+						return mainRolesB - mainRolesA;
+					}
+
+					if(supportingRolesA !== supportingRolesB){
+						return supportingRolesB - supportingRolesA;
+					}
+
+					if(allRolesA !== allRolesB){
+						return allRolesB - allRolesA;
+					}
+
+					return 0;
 				});
 				const seiyuusSortedBySupportingRoles = [...seiyuuSummaries].sort((a, b) => {
-					const { supportingRoles: countA } = a;
-					const { supportingRoles: countB } = b;
+					const { allRoles: allRolesA, mainRoles: mainRolesA, supportingRoles: supportingRolesA } = a;
+					const { allRoles: allRolesB, mainRoles: mainRolesB, supportingRoles: supportingRolesB } = b;
 				
-					return countB - countA;
+					if(supportingRolesA !== supportingRolesB){
+						return supportingRolesB - supportingRolesA;
+					}
+
+					if(mainRolesA !== mainRolesB){
+						return mainRolesB - mainRolesA;
+					}
+
+					if(allRolesA !== allRolesB){
+						return allRolesB - allRolesA;
+					}
+
+					return 0;
 				});
 
 				const allRolesPoints: Point[] = seiyuusSortedByAllRoles.reduce(
