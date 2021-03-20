@@ -4,9 +4,6 @@ A form to determine which seiyuus (voice actors/actresses) were the most prolifi
 
 ## Example
 
-<img alt="Example output" src="./github/form.png" width="400"/>
-<img alt="Example output" src="./github/example_2020_all.png" width="400"/>
-
 <table>
     <tbody>
         <tr>
@@ -18,8 +15,8 @@ A form to determine which seiyuus (voice actors/actresses) were the most prolifi
             </td>
         </tr>
         <tr>
-            <td align="center" valign="middle">Form (spring 2021)</td>
-            <td align="center" valign="middle">Output (whole of 2020)</td>
+            <td align="center" valign="middle">Form</td>
+            <td align="center" valign="middle">Example output for whole of 2020</td>
         </tr>
     </tbody>
 </table>
